@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+p.normal {
+  border: 7px double red;
+  background-color: cyan;
+  padding: 5px;
+}
+
+p.round1 {
+  border: 2px solid blue;
+  background-color: yellow;
+  border-radius: 12px;
+  padding: 5px;
+}
+
+p.dot {
+  border: 7px dotted gray;
+  background-color: green;
+  padding: 5px;
+}
+
+</style>
+</head>
+<body>
+
+<p class="normal">Hello World</p>
+<p class="round1">Hello World</p>
+<p class="dot">Hello World</p>
+
+</body>
+</html>
