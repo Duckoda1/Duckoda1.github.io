@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>線上快速記帳（圓餅圖側欄版）</title>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ============================================================
+   CSS 變數（深色與亮色模式）
+============================================================ */
+:root {
+    --bg: #ffffff;             /* 白底 */
+    --card: #ffffff;           /* 卡片白 */
+    --text: #1a1a1a;           /* 黑字 */
+    --border: #dcdcdc;
+
+    /* 主題色：藍＋黃 */
+    --primary: #1E88E5;        /* 藍 */
+    --secondary: #FFC928;      /* 黃 */
+
+    /* 收入 / 支出 */
+    --income: #4caf50;
+    --expense: #e53935;
+
+    /* Tag 色 */
+    --tag-food: #43a047;
+    --tag-traffic: #1E88E5;
+    --tag-fun: #8e24aa;
+    --tag-shop: #fb8c00;
+    --tag-home: #6d4c41;
+    --tag-other: #546e7a;
+}
+
+/* 深色模式 */
+.dark {
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #e0e0e0;
+    --border: #444;
+
+    /* 深色模式下保持藍黃 */
+    --primary: #64B5F6;    
+    --secondary: #FFD54F;
+}
+
+/* ============================================================
+   General Layout
+============================================================ */
+body {
+    background: var(--bg);
+    font-family: "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 20px;
+    color: var(--text);
+}
+
+h1 { text-align: center; margin-bottom: 20px; }
+
+#themeToggle {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    padding: 10px 15px;
+    color: #fff;
+    background: var(--primary);
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+}
+
+/* 主體分左右 */
+.main-layout {
+    display: flex;
+    gap: 20px;
+}
+
+/* 左側：主要內容 */
+.left-content {
+    flex: 3;
+}
+
+/* 右側：圓餅圖側欄（變高） */
+.right-sidebar {
+    flex: 1;
+}
+
+/* 卡片統一樣式 */
+.section {
+    background: var(--card);
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* 🎯 修正圓餅圖橢圓問題 + 加大 */
+#pieChart {
+    width: 100% !important;
+    max-width: 260px;
+    height: 260px !important; /* 固定比例，不再橢圓 */
+    margin: 0 auto;
+    display: block;
+}
+
+/* ============================================================
+   表單
+============================================================ */
+.form-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.form-group input,
+.form-group select {
+    flex: 1 1 180px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+}
+
+button {
+    padding: 10px 15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* 強調按鈕 */
+.quick-btn { background: var(--secondary); color: #000; }
+.delete-btn { background: #e53935; }
+.edit-btn { background: var(--primary); }
+.cancel-btn { background: #757575; }
+
+/* ============================================================
+   表格
+============================================================ */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+th {
+    background: var(--secondary);
+    padding: 12px;
+    color: #000;
+}
+td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+tr:hover { background: rgba(30,136,229,0.12); }
+
+.income-row { border-left: 6px solid var(--income); }
+.expense-row { border-left: 6px solid var(--expense); }
+
+.tag {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 15px;
+    color: white;
+    font-size: 13px;
+}
+
+/* ============================================================
+   手機版
+============================================================ */
+@media (max-width: 900px) {
+    .main-layout {
+        flex-direction: column;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<button id="themeToggle">深色模式</button>
+
+<h1>線上快速記帳</h1>
+
+<div class="main-layout">
+
+    <!-- 左側主要內容 -->
+    <div class="left-content">
+
+        <!-- 統計 -->
+        <div class="section">
+            <h3>
+            <strong>統計</strong>
+            <strong>總收入：</strong> <span id="totalIncome">0</span>
+            <strong>總支出：</strong> <span id="totalExpense">0</span>
+            <strong>淨額：</strong> <span id="netAmount">0</span>
+            </h3>
+        </div>
+
+        <!-- 表單 -->
+        <div class="section">
+            <h3 id="formTitle">新增記錄</h3>
+
+            <div class="form-group">
+                <input type="text" id="nameInput" placeholder="項目名稱（必填）">
+                <input type="number" id="amountInput" placeholder="金額（必填）" min="1">
+
+                <select id="typeInput">
+                    <option value="收入">收入</option>
+                    <option value="支出">支出</option>
+                </select>
+
+                <select id="categoryInput">
+                    <option value="食物">食物</option>
+                    <option value="交通">交通</option>
+                    <option value="娛樂">娛樂</option>
+                    <option value="購物">購物</option>
+                    <option value="家居">家居</option>
+                    <option value="其他">其他</option>
+                </select>
+
+                <input type="date" id="dateInput">
+            </div>
+
+            <button id="submitBtn">添加記錄</button>
+            <button id="cancelEditBtn" class="cancel-btn" style="display:none;">取消編輯</button>
+        </div>
+
+        <!-- 篩選 -->
+        <div class="section">
+            <h3>分類篩選</h3>
+            <select id="filterCategory">
+                <option value="全部">全部</option>
+                <option value="食物">食物</option>
+                <option value="交通">交通</option>
+                <option value="娛樂">娛樂</option>
+                <option value="購物">購物</option>
+                <option value="家居">家居</option>
+                <option value="其他">其他</option>
+            </select>
+        </div>
+
+        <!-- 表格 -->
+        <div class="section">
+            <h3>記錄列表</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>名稱</th>
+                        <th>金額</th>
+                        <th>類型</th>
+                        <th>分類</th>
+                        <th>日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="recordsTable"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- 右側側欄 -->
+    <div class="right-sidebar">
+        <div class="section">
+            <h3>收支圓餅圖</h3>
+            <canvas id="pieChart"></canvas>
+            <div id="noDataText" style="text-align:center; margin-top:10px; font-size:14px;"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ============================================================
+   JavaScript
+============================================================ */
+
+let records = [];
+let editId = null;
+let pieChart;
+
+// 初始化
+window.onload = () => {
+    loadTheme();
+    loadRecords();
+    renderRecords();
+    renderStats();
+    updatePieChart();
+
+    dateInput.value = new Date().toISOString().split("T")[0];
+};
+
+/* ---------------- 深色模式 ---------------- */
+themeToggle.onclick = () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("theme",
+        document.body.classList.contains("dark") ? "dark" : "light"
+    );
+    updatePieChart();
+};
+
+function loadTheme() {
+    if (localStorage.getItem("theme") === "dark")
+        document.body.classList.add("dark");
+}
+
+/* ---------------- localStorage ---------------- */
+function loadRecords() {
+    const saved = localStorage.getItem("records");
+    records = saved ? JSON.parse(saved) : [];
+}
+function saveRecords() {
+    localStorage.setItem("records", JSON.stringify(records));
+}
+
+/* ---------------- 新增 / 編輯 ---------------- */
+submitBtn.onclick = () => {
+    const name = nameInput.value.trim();
+    const amount = Number(amountInput.value);
+    const type = typeInput.value;
+    const category = categoryInput.value;
+    const date = dateInput.value;
+
+    if (!name) return alert("名稱不可空白！");
+    if (!amount || amount <= 0) return alert("金額需大於 0！");
+
+    if (editId) {
+        const i = records.findIndex(r => r.id === editId);
+        records[i] = { id: editId, name, amount, type, category, date };
+        editId = null;
+
+        formTitle.textContent = "新增記錄";
+        submitBtn.textContent = "添加記錄";
+        cancelEditBtn.style.display = "none";
+    } else {
+        records.push({ id: Date.now(), name, amount, type, category, date });
+    }
+
+    saveRecords();
+    renderRecords();
+    renderStats();
+    updatePieChart();
+    resetForm();
+};
+
+cancelEditBtn.onclick = () => {
+    resetForm();
+    editId = null;
+    formTitle.textContent = "新增記錄";
+    submitBtn.textContent = "添加記錄";
+    cancelEditBtn.style.display = "none";
+};
+
+function resetForm() {
+    nameInput.value = "";
+    amountInput.value = "";
+    typeInput.value = "收入";
+    categoryInput.value = "食物";
+    dateInput.value = new Date().toISOString().split("T")[0];
+}
+
+/* ---------------- 表格 ---------------- */
+function renderRecords() {
+    const tbody = recordsTable;
+    const filter = filterCategory.value;
+
+    tbody.innerHTML = "";
+
+    const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+
+    sorted
+        .filter(r => filter === "全部" || r.category === filter)
+        .forEach(r => {
+            const tr = document.createElement("tr");
+            tr.className = r.type === "收入" ? "income-row" : "expense-row";
+
+            const tagClass = {
+                "食物": "tag-food",
+                "交通": "tag-traffic",
+                "娛樂": "tag-fun",
+                "購物": "tag-shop",
+                "家居": "tag-home",
+                "其他": "tag-other"
+            }[r.category];
+
+            tr.innerHTML = `
+                <td>${r.name}</td>
+                <td>${r.amount}</td>
+                <td>${r.type}</td>
+                <td><span class="tag ${tagClass}">${r.category}</span></td>
+                <td>${r.date}</td>
+                <td>
+                    <button class="quick-btn" onclick="quickAdd(${r.id})">快速</button>
+                    <button class="edit-btn" onclick="editRecord(${r.id})">編輯</button>
+                    <button class="delete-btn" onclick="deleteRecord(${r.id})">刪除</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+}
+
+filterCategory.onchange = () => renderRecords();
+
+/* ---------------- 快速記帳 ---------------- */
+function quickAdd(id) {
+    const r = records.find(x => x.id === id);
+
+    records.push({
+        id: Date.now(),
+        name: r.name,
+        amount: r.amount,
+        type: r.type,
+        category: r.category,
+        date: new Date().toISOString().split("T")[0]
+    });
+
+    saveRecords();
+    renderRecords();
+    renderStats();
+    updatePieChart();
+}
+
+/* ---------------- 編輯 ---------------- */
+function editRecord(id) {
+    const r = records.find(x => x.id === id);
+    editId = id;
+
+    nameInput.value = r.name;
+    amountInput.value = r.amount;
+    typeInput.value = r.type;
+    categoryInput.value = r.category;
+    dateInput.value = r.date;
+
+    formTitle.textContent = "編輯記錄";
+    submitBtn.textContent = "保存修改";
+    cancelEditBtn.style.display = "inline-block";
+}
+
+/* ---------------- 刪除 ---------------- */
+function deleteRecord(id) {
+    if (!confirm("確定刪除？")) return;
+
+    records = records.filter(r => r.id !== id);
+    saveRecords();
+    renderRecords();
+    renderStats();
+    updatePieChart();
+}
+
+/* ---------------- 統計 ---------------- */
+function renderStats() {
+    let income = 0, expense = 0;
+
+    records.forEach(r => {
+        if (r.type === "收入") income += r.amount;
+        else expense += r.amount;
+    });
+
+    totalIncome.textContent = income;
+    totalExpense.textContent = expense;
+    netAmount.textContent = income - expense;
+}
+
+/* ---------------- 圓餅圖 ---------------- */
+function updatePieChart() {
+    const ctx = document.getElementById("pieChart").getContext("2d");
+
+    let income = 0, expense = 0;
+    records.forEach(r => {
+        if (r.type === "收入") income += r.amount;
+        else expense += r.amount;
+    });
+
+    if (pieChart) pieChart.destroy();
+
+    // 無資料 → 顯示黑色圓
+    if (income === 0 && expense === 0) {
+        pieChart = new Chart(ctx, {
+            type: "pie",
+            data: {
+                labels: ["無資料"],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ["#000"]
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } }
+            }
+        });
+        document.getElementById("noDataText").textContent = "目前沒有記錄";
+        return;
+    }
+
+    // 有資料 → 正常顯示
+    document.getElementById("noDataText").textContent = "";
+    pieChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["收入", "支出"],
+            datasets: [{
+                data: [income, expense],
+                backgroundColor: ["#4caf50", "#e53935"]
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { labels: { color: getComputedStyle(document.body).getPropertyValue("--text") } }
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>
