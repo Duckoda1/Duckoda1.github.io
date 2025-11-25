@@ -9,16 +9,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ============================================================
-   CSS 變數（深色與亮色模式）
-============================================================ */
 :root {
     --bg: #ffffff;             /* 白底 */
     --card: #ffffff;           /* 卡片白 */
     --text: #1a1a1a;           /* 黑字 */
     --border: #dcdcdc;
 
-    /* 主題色：藍＋黃 */
+    /* 藍＋黃 */
     --primary: #1E88E5;        /* 藍 */
     --secondary: #FFC928;      /* 黃 */
 
@@ -47,9 +44,6 @@
     --secondary: #FFD54F;
 }
 
-/* ============================================================
-   General Layout
-============================================================ */
 body {
     background: var(--bg);
     font-family: "Segoe UI", sans-serif;
@@ -72,18 +66,17 @@ h1 { text-align: center; margin-bottom: 20px; }
     cursor: pointer;
 }
 
-/* 主體分左右 */
 .main-layout {
     display: flex;
     gap: 20px;
 }
 
-/* 左側：主要內容 */
+/* 主要內容 */
 .left-content {
     flex: 3;
 }
 
-/* 右側：圓餅圖側欄（變高） */
+/*圓餅圖側欄*/
 .right-sidebar {
     flex: 1;
 }
@@ -97,18 +90,15 @@ h1 { text-align: center; margin-bottom: 20px; }
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-/* 🎯 修正圓餅圖橢圓問題 + 加大 */
+/* 圓餅圖 */
 #pieChart {
     width: 100% !important;
     max-width: 260px;
-    height: 260px !important; /* 固定比例，不再橢圓 */
+    height: 260px !important; 
     margin: 0 auto;
     display: block;
 }
 
-/* ============================================================
-   表單
-============================================================ */
 .form-group {
     display: flex;
     flex-wrap: wrap;
@@ -134,15 +124,12 @@ button {
     cursor: pointer;
 }
 
-/* 強調按鈕 */
+/* 按鈕 */
 .quick-btn { background: var(--secondary); color: #000; }
 .delete-btn { background: #e53935; }
 .edit-btn { background: var(--primary); }
 .cancel-btn { background: #757575; }
 
-/* ============================================================
-   表格
-============================================================ */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -297,7 +284,7 @@ window.onload = () => {
     dateInput.value = new Date().toISOString().split("T")[0];
 };
 
-/* ---------------- 深色模式 ---------------- */
+/* 深色模式  */
 themeToggle.onclick = () => {
     document.body.classList.toggle("dark");
     localStorage.setItem("theme",
@@ -311,7 +298,7 @@ function loadTheme() {
         document.body.classList.add("dark");
 }
 
-/* ---------------- localStorage ---------------- */
+/* localStorage  */
 function loadRecords() {
     const saved = localStorage.getItem("records");
     records = saved ? JSON.parse(saved) : [];
@@ -320,7 +307,6 @@ function saveRecords() {
     localStorage.setItem("records", JSON.stringify(records));
 }
 
-/* ---------------- 新增 / 編輯 ---------------- */
 submitBtn.onclick = () => {
     const name = nameInput.value.trim();
     const amount = Number(amountInput.value);
@@ -366,7 +352,7 @@ function resetForm() {
     dateInput.value = new Date().toISOString().split("T")[0];
 }
 
-/* ---------------- 表格 ---------------- */
+/*  表格  */
 function renderRecords() {
     const tbody = recordsTable;
     const filter = filterCategory.value;
@@ -408,7 +394,7 @@ function renderRecords() {
 
 filterCategory.onchange = () => renderRecords();
 
-/* ---------------- 快速記帳 ---------------- */
+/*  記帳  */
 function quickAdd(id) {
     const r = records.find(x => x.id === id);
 
@@ -427,7 +413,7 @@ function quickAdd(id) {
     updatePieChart();
 }
 
-/* ---------------- 編輯 ---------------- */
+// 編輯 //
 function editRecord(id) {
     const r = records.find(x => x.id === id);
     editId = id;
@@ -443,7 +429,7 @@ function editRecord(id) {
     cancelEditBtn.style.display = "inline-block";
 }
 
-/* ---------------- 刪除 ---------------- */
+// 刪除 //
 function deleteRecord(id) {
     if (!confirm("確定刪除？")) return;
 
@@ -454,7 +440,7 @@ function deleteRecord(id) {
     updatePieChart();
 }
 
-/* ---------------- 統計 ---------------- */
+//  統計  //
 function renderStats() {
     let income = 0, expense = 0;
 
@@ -468,7 +454,7 @@ function renderStats() {
     netAmount.textContent = income - expense;
 }
 
-/* ---------------- 圓餅圖 ---------------- */
+//  圓餅圖  //
 function updatePieChart() {
     const ctx = document.getElementById("pieChart").getContext("2d");
 
@@ -480,7 +466,6 @@ function updatePieChart() {
 
     if (pieChart) pieChart.destroy();
 
-    // 無資料 → 顯示黑色圓
     if (income === 0 && expense === 0) {
         pieChart = new Chart(ctx, {
             type: "pie",
@@ -499,7 +484,6 @@ function updatePieChart() {
         return;
     }
 
-    // 有資料 → 正常顯示
     document.getElementById("noDataText").textContent = "";
     pieChart = new Chart(ctx, {
         type: "pie",
