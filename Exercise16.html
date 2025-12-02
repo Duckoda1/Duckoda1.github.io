@@ -1,57 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-    
     <style>
         body {
-            background-color: white;
-            font-family: Arial, sans-serif;
             padding: 40px;
         }
 
-        .square-group {
+        .g {
             display: flex;
             align-items: center;
             gap: 15px;
             margin-bottom: 20px;
         }
 
-        .number {
+        .n {
             font-weight: bold;
-            font-size: 1.2em;
         }
 
-        .square {
+        .s {
             width: 80px;
             height: 80px;
             background-color: pink;
             transition: all 0.5s ease; 
         }
 
-        .square-1:hover {
+        .s1:hover {
             width: 350px; 
             height: 80px; 
         }
 
-        .square-2:hover {
+        .s2:hover {
             width: 150px; 
             height: 150px; 
         }
     </style>
 </head>
 <body>
-
-    <div class="square-group">
-        <div class="number"></div>
-        <div class="square square-1"></div>
+    <div class="g">
+        <div class="s s1"></div>
     </div>
 
-    <div class="square-group">
-        <div class="number"></div>
-        <div class="square square-2"></div>
+    <div class="g">
+        <div class="s s2"></div>
     </div>
 </body>
 </html>
