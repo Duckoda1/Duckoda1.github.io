@@ -1,0 +1,260 @@
+const i18n = {
+    zh: {
+        title: "線上快速記帳", stats: "統計", totalIncome: "總收入", totalExpense: "總支出", net: "淨額",
+        addRecord: "新增記錄", editRecord: "編輯記錄", placeholderName: "項目名稱", placeholderAmount: "金額",
+        typeIn: "收入", typeOut: "支出", catFood: "食物", catTraffic: "交通", catFun: "娛樂", catShop: "購物", catHome: "家居", catOther: "其他",
+        addBtn: "添加記錄", saveBtn: "保存修改", cancelBtn: "取消編輯", filterTitle: "分類篩選", all: "全部",
+        listTitle: "記錄列表", thName: "名稱", thAmount: "金額", thType: "類型", thCat: "分類", thDate: "日期", thAction: "操作",
+        chartTitle: "收支圓餅圖", noData: "目前沒有記錄", quick: "快速", edit: "編輯", delete: "刪除",
+        useResult: "使用結果", alertName: "名稱不可空白！", alertAmount: "金額需大於 0！", confirmDel: "確定刪除？"
+    },
+    en: {
+        title: "Expense Tracker", stats: "Stats", totalIncome: "Income", totalExpense: "Expense", net: "Net",
+        addRecord: "Add Record", editRecord: "Edit Record", placeholderName: "Item Name", placeholderAmount: "Amount",
+        typeIn: "Income", typeOut: "Expense", catFood: "Food", catTraffic: "Transport", catFun: "Fun", catShop: "Shop", catHome: "Home", catOther: "Other",
+        addBtn: "Add", saveBtn: "Save", cancelBtn: "Cancel", filterTitle: "Category Filter", all: "All",
+        listTitle: "History", thName: "Name", thAmount: "Price", thType: "Type", thCat: "Category", thDate: "Date", thAction: "Action",
+        chartTitle: "Analysis Chart", noData: "No Data", quick: "Copy", edit: "Edit", delete: "Del",
+        useResult: "Apply", alertName: "Name is required!", alertAmount: "Amount must > 0!", confirmDel: "Are you sure?"
+    },
+    jp: {
+        title: "オンライン家計簿", stats: "統計", totalIncome: "収入合計", totalExpense: "支出合計", net: "純額",
+        addRecord: "新規登録", editRecord: "編集", placeholderName: "項目名", placeholderAmount: "金額",
+        typeIn: "収入", typeOut: "支出", catFood: "食事", catTraffic: "交通", catFun: "娯楽", catShop: "買い物", catHome: "家庭", catOther: "その他",
+        addBtn: "追加", saveBtn: "保存", cancelBtn: "キャンセル", filterTitle: "フィルター", all: "全て",
+        listTitle: "履歴リスト", thName: "名稱", thAmount: "金額", thType: "種類", thCat: "分類", thDate: "日付", thAction: "操作",
+        chartTitle: "収支円グラフ", noData: "データなし", quick: "速い", edit: "編集", delete: "削除",
+        useResult: "結果を使う", alertName: "名前を入力してください！", alertAmount: "金額は0より大きく！", confirmDel: "削除しますか？"
+    }
+};
+
+let currentLang = localStorage.getItem("lang") || "zh";
+let records = [];
+let editId = null;
+let pieChart;
+
+window.onload = () => {
+    loadTheme();
+    loadRecords();
+    changeLang(currentLang);
+    dateInput.value = new Date().toISOString().split("T")[0];
+};
+
+
+filterCategory.onchange = () => renderRecords();
+
+
+function changeLang(lang) {
+    currentLang = lang;
+    localStorage.setItem("lang", lang);
+    const dict = i18n[lang];
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+        const key = el.getAttribute("data-i18n-placeholder");
+        if (dict[key]) el.placeholder = dict[key];
+    });
+
+    renderRecords();
+    renderStats(); // 確保統計文字也更新
+    updatePieChart();
+}
+
+//深色模式
+themeToggle.onclick = () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    updatePieChart();
+};
+
+function loadTheme() {
+    if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
+}
+
+//資料處理
+function loadRecords() {
+    const saved = localStorage.getItem("records");
+    records = saved ? JSON.parse(saved) : [];
+}
+
+function saveRecords() {
+    localStorage.setItem("records", JSON.stringify(records));
+}
+
+submitBtn.onclick = () => {
+    const name = nameInput.value.trim();
+    const amount = Number(amountInput.value);
+    const type = typeInput.value;
+    const category = categoryInput.value;
+    const date = dateInput.value;
+    const dict = i18n[currentLang];
+
+    if (!name) return alert(dict.alertName);
+    if (!amount || amount <= 0) return alert(dict.alertAmount);
+
+    if (editId) {
+        const i = records.findIndex(r => r.id === editId);
+        records[i] = { id: editId, name, amount, type, category, date };
+        editId = null;
+        submitBtn.textContent = dict.addBtn;
+        cancelEditBtn.style.display = "none";
+    } else {
+        records.push({ id: Date.now(), name, amount, type, category, date });
+    }
+
+    saveRecords();
+    renderRecords();
+    renderStats();
+    updatePieChart();
+    resetForm();
+};
+
+function resetForm() {
+    nameInput.value = "";
+    amountInput.value = "";
+    dateInput.value = new Date().toISOString().split("T")[0];
+    cancelEditBtn.style.display = "none";
+}
+
+//表格渲染 (分類顯示核心)
+function renderRecords() {
+    const tbody = recordsTable;
+    const filter = filterCategory.value;
+    const dict = i18n[currentLang];
+    tbody.innerHTML = "";
+
+    const sorted = [...records].sort((a, b) => b.date.localeCompare(a.date));
+    
+    // 執行篩選
+    sorted.filter(r => filter === "全部" || r.category === filter).forEach(r => {
+        const tr = document.createElement("tr");
+        tr.className = r.type === "收入" ? "income-row" : "expense-row";
+
+        // 映射分類翻譯 Key
+        const catKeyMap = {
+            "食物": "catFood", "交通": "catTraffic", "娛樂": "catFun", 
+            "購物": "catShop", "家居": "catHome", "其他": "catOther"
+        };
+        const catKey = catKeyMap[r.category] || "catOther";
+        
+        // 映射 CSS Class
+        const tagClassMap = {
+            "食物": "tag-food", "交通": "tag-traffic", "娛樂": "tag-fun", 
+            "購物": "tag-shop", "家居": "tag-home", "其他": "tag-other"
+        };
+        const tagClass = tagClassMap[r.category] || "tag-other";
+
+        tr.innerHTML = `
+            <td>${r.name}</td>
+            <td>${r.amount}</td>
+            <td>${r.type === "收入" ? dict.typeIn : dict.typeOut}</td>
+            <td><span class="tag ${tagClass}">${dict[catKey]}</span></td>
+            <td>${r.date}</td>
+            <td>
+                <button class="quick-btn" onclick="quickAdd(${r.id})">${dict.quick}</button>
+                <button class="edit-btn" onclick="editRecord(${r.id})">${dict.edit}</button>
+                <button class="delete-btn" onclick="deleteRecord(${r.id})">${dict.delete}</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// 快速複製
+function quickAdd(id) {
+    const r = records.find(x => x.id === id);
+    records.push({ ...r, id: Date.now(), date: new Date().toISOString().split("T")[0] });
+    saveRecords(); renderRecords(); renderStats(); updatePieChart();
+}
+
+// 刪除
+function deleteRecord(id) {
+    if (!confirm(i18n[currentLang].confirmDel)) return;
+    records = records.filter(r => r.id !== id);
+    saveRecords(); renderRecords(); renderStats(); updatePieChart();
+}
+
+// 編輯
+function editRecord(id) {
+    const r = records.find(x => x.id === id);
+    editId = id;
+    nameInput.value = r.name;
+    amountInput.value = r.amount;
+    typeInput.value = r.type;
+    categoryInput.value = r.category;
+    dateInput.value = r.date;
+    submitBtn.textContent = i18n[currentLang].saveBtn;
+    cancelEditBtn.style.display = "inline-block";
+}
+
+// 取消編輯按鈕
+cancelEditBtn.onclick = () => {
+    editId = null;
+    resetForm();
+    submitBtn.textContent = i18n[currentLang].addBtn;
+};
+
+function renderStats() {
+    let inc = 0, exp = 0;
+    records.forEach(r => r.type === "收入" ? inc += r.amount : exp += r.amount);
+    totalIncome.textContent = inc;
+    totalExpense.textContent = exp;
+    netAmount.textContent = inc - exp;
+}
+
+//計算機邏輯
+const calcToggleBtn = document.getElementById("calcToggleBtn");
+const calculator = document.getElementById("calculator");
+const calcDisplay = document.getElementById("calcDisplay");
+
+if (calcToggleBtn) {
+    calcToggleBtn.onclick = () => calculator.style.display = calculator.style.display === "none" ? "block" : "none";
+}
+
+function calcInput(val) {
+    if (calcDisplay.textContent === "0") calcDisplay.textContent = val;
+    else calcDisplay.textContent += val;
+}
+function calcClear() { calcDisplay.textContent = "0"; }
+function calcResult() {
+    try { calcDisplay.textContent = eval(calcDisplay.textContent); }
+    catch { calcDisplay.textContent = "Error"; }
+}
+function useCalc() {
+    amountInput.value = calcDisplay.textContent;
+    calculator.style.display = "none";
+}
+// 綁定計算機結果按鈕
+const useBtn = document.getElementById("useCalcResult");
+if (useBtn) useBtn.onclick = useCalc;
+
+//圖表
+function updatePieChart() {
+    const ctx = document.getElementById("pieChart").getContext("2d");
+    const dict = i18n[currentLang];
+    let inc = 0, exp = 0;
+    records.forEach(r => r.type === "收入" ? inc += r.amount : exp += r.amount);
+
+    if (pieChart) pieChart.destroy();
+    if (inc === 0 && exp === 0) {
+        document.getElementById("noDataText").textContent = dict.noData;
+        return;
+    }
+    document.getElementById("noDataText").textContent = "";
+    pieChart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: [dict.typeIn, dict.typeOut],
+            datasets: [{ data: [inc, exp], backgroundColor: ["#4caf50", "#e53935"] }]
+        },
+        options: {
+            plugins: {
+                legend: { labels: { color: getComputedStyle(document.body).getPropertyValue("--text") } }
+            }
+        }
+    });
+}
