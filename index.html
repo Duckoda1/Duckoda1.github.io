@@ -1,13 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHEN JHIH-HAO</title>
+    <title>Multi-lang Expense Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>1133521</h1>
-    <p>CHEN JHIH-HAO</p>
-    <p>i'm gay</p>
+
+<button id="themeToggle">Dark Mode</button>
+
+<div class="lang-switcher">
+    <button onclick="changeLang('zh')">繁體中文</button>
+    <button onclick="changeLang('en')">English</button>
+    <button onclick="changeLang('jp')">日本語</button>
+</div>
+
+<h1 data-i18n="title">線上快速記帳</h1>
+
+<div class="main-layout">
+    <div class="left-content">
+        <div class="section">
+            <h3 class="stats-header">
+                <span data-i18n="stats">統計</span> | 
+                <span data-i18n="totalIncome">總收入</span>: <span id="totalIncome">0</span> | 
+                <span data-i18n="totalExpense">總支出</span>: <span id="totalExpense">0</span> | 
+                <span data-i18n="net">淨額</span>: <span id="netAmount">0</span>
+            </h3>
+        </div>
+
+        <div class="section">
+            <h3 id="formTitle" data-i18n="addRecord">新增記錄</h3>
+            <div class="form-group">
+                <input type="text" id="nameInput" data-i18n-placeholder="placeholderName">
+                
+                <div class="amount-container">
+                    <input type="number" id="amountInput" data-i18n-placeholder="placeholderAmount">
+                    <button type="button" id="calcToggleBtn">calc</button>
+                </div>
+
+                <select id="typeInput">
+                    <option value="收入" data-i18n="typeIn">收入</option>
+                    <option value="支出" data-i18n="typeOut">支出</option>
+                </select>
+
+                <select id="categoryInput">
+                    <option value="食物" data-i18n="catFood">食物</option>
+                    <option value="交通" data-i18n="catTraffic">交通</option>
+                    <option value="娛樂" data-i18n="catFun">娛樂</option>
+                    <option value="購物" data-i18n="catShop">購物</option>
+                    <option value="家居" data-i18n="catHome">家居</option>
+                    <option value="其他" data-i18n="catOther">其他</option>
+                </select>
+
+                <input type="date" id="dateInput">
+            </div>
+            
+            <div id="calculator" class="calc-panel" style="display:none;">
+                <div id="calcDisplay">0</div>
+                <div class="calc-buttons">
+                    <button onclick="calcInput('7')">7</button><button onclick="calcInput('8')">8</button><button onclick="calcInput('9')">9</button><button onclick="calcInput('/')">/</button>
+                    <button onclick="calcInput('4')">4</button><button onclick="calcInput('5')">5</button><button onclick="calcInput('6')">6</button><button onclick="calcInput('*')">*</button>
+                    <button onclick="calcInput('1')">1</button><button onclick="calcInput('2')">2</button><button onclick="calcInput('3')">3</button><button onclick="calcInput('-')">-</button>
+                    <button onclick="calcInput('0')">0</button><button onclick="calcClear()">C</button><button onclick="calcResult()">=</button><button onclick="calcInput('+')">+</button>
+                </div>
+                <button id="useCalcResult" data-i18n="useResult">使用結果</button>
+            </div>
+
+            <div style="margin-top:15px;">
+                <button id="submitBtn" data-i18n="addBtn">添加記錄</button>
+                <button id="cancelEditBtn" class="cancel-btn" style="display:none;" data-i18n="cancelBtn">取消編輯</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3 data-i18n="filterTitle">分類篩選</h3>
+            <select id="filterCategory">
+                <option value="全部" data-i18n="all">全部</option>
+                <option value="食物" data-i18n="catFood">食物</option>
+                <option value="交通" data-i18n="catTraffic">交通</option>
+                <option value="娛樂" data-i18n="catFun">娛樂</option>
+                <option value="購物" data-i18n="catShop">購物</option>
+                <option value="家居" data-i18n="catHome">家居</option>
+                <option value="其他" data-i18n="catOther">其他</option>
+            </select>
+        </div>
+
+        <div class="section" style="overflow-x:auto;">
+            <h3 data-i18n="listTitle">記錄列表</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th data-i18n="thName">名稱</th>
+                        <th data-i18n="thAmount">金額</th>
+                        <th data-i18n="thType">類型</th>
+                        <th data-i18n="thCat">分類</th>
+                        <th data-i18n="thDate">日期</th>
+                        <th data-i18n="thAction">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="recordsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="right-sidebar">
+        <div class="section">
+            <h3 data-i18n="chartTitle">收支圓餅圖</h3>
+            <canvas id="pieChart"></canvas>
+            <div id="noDataText" style="text-align:center; margin-top:10px; font-size:14px;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
